@@ -30,11 +30,8 @@ export interface IProductsResponse {
 }
 
 // Тип данных заказа, отправляемых на сервер
-export interface IOrderData {
+export interface IOrderData extends IBuyer {
     payment: TPayment;
-    email: string;
-    phone: string;
-    address: string;
     items: string[];  // массив id товаров
     total: number;
 }
