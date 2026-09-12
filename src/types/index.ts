@@ -44,3 +44,6 @@ export interface IOrderResponse {
     id: string;
     total: number;
 }
+
+// Тип ошибок валидации данных покупателя
+export type TValidationErrors = Partial<Record<keyof IBuyer, string>>;

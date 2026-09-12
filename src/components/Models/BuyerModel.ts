@@ -1,7 +1,6 @@
-import { IBuyer } from '../../types/index';
-import { EventEmitter } from '../base/Events';
+import { IBuyer, TValidationErrors } from '../../types/index';
 
-export class BuyerModel extends EventEmitter {
+export class BuyerModel {
     private buyer: IBuyer = {
         payment: '',
         email: '',
@@ -9,14 +8,9 @@ export class BuyerModel extends EventEmitter {
         address: ''
     };
 
-    constructor() {
-        super();
-    }
-
     // Обновляет данные покупателя (можно обновить только необходимые поля)
     setBuyerData(data: Partial<IBuyer>): void {
         this.buyer = { ...this.buyer, ...data };
-        this.emit('buyer:changed', { buyer: this.buyer });
     }
 
     // Возвращает все данные покупателя
@@ -32,14 +26,13 @@ export class BuyerModel extends EventEmitter {
             phone: '',
             address: ''
         };
-        this.emit('buyer:changed', { buyer: this.buyer });
     }
 
     // Валидирует данные покупателя
     // Возвращает объект с ошибками валидации (ключ - поле, значение - сообщение об ошибке)
     // Если все данные валидны, возвращает пустой объект
-    validateBuyerData(): Partial<Record<keyof IBuyer, string>> {
-        const errors: Partial<Record<keyof IBuyer, string>> = {};
+    validateBuyerData(): TValidationErrors {
+        const errors: TValidationErrors = {};
 
         if (!this.buyer.payment) {
             errors.payment = 'Не выбран вид оплаты';

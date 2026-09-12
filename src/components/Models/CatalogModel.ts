@@ -1,18 +1,12 @@
 import { IProduct } from '../../types/index';
-import { EventEmitter } from '../base/Events';
 
-export class CatalogModel extends EventEmitter {
+export class CatalogModel {
     private products: IProduct[] = [];
     private selectedProduct: IProduct | null = null;
-
-    constructor() {
-        super();
-    }
 
     // Сохраняет переданный массив товаров в модель
     setProducts(products: IProduct[]): void {
         this.products = products;
-        this.emit('catalog:changed', { products: this.products });
     }
 
     // Возвращает массив всех товаров из каталога
@@ -28,7 +22,6 @@ export class CatalogModel extends EventEmitter {
     // Сохраняет товар для подробного отображения
     setSelectedProduct(product: IProduct): void {
         this.selectedProduct = product;
-        this.emit('product:selected', { product: this.selectedProduct });
     }
 
     // Получает товар для подробного отображения
