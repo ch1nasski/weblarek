@@ -14,23 +14,10 @@
     flex-direction: row;
     background-color: transparent;
     align-items: center;
-    width: 100%;
-    min-width: 0;
 
     .card__title {
       flex-grow: 0;
     }
-
-    .card__image {
-      width: min(40%, 320px);
-      height: auto;
-      margin: 0 2rem 0 0;
-      flex: 0 1 320px;
-    }
-  }
-
-  &_compact {
-    min-width: 0;
   }
 
   &_compact {
@@ -47,10 +34,7 @@
   &__column {
     @include mixins.flex(column);
     align-items: flex-start;
-    flex: 1;
-    min-width: 0;
-    min-height: 260px;
-    height: auto;
+    height: 390px;
   }
 
   &__row {
@@ -64,7 +48,6 @@
     aspect-ratio: 1;
     margin: 3.75rem;
     align-self: center;
-    object-fit: contain;
   }
   &__title {
     font-size: $titleFontSize;
@@ -101,27 +84,5 @@
   &__action {
   }
   &__price {
-  }
-}
-
-@media (max-width: 680px) {
-  .card_full {
-    flex-direction: column;
-    align-items: stretch;
-
-    .card__image {
-      width: min(100%, 240px);
-      max-height: 240px;
-      margin: 0 auto 1rem;
-      flex-basis: auto;
-    }
-
-    .card__column {
-      min-height: 0;
-    }
-
-    .card__title {
-      font-size: 1.6rem;
-    }
   }
 }

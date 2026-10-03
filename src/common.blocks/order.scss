@@ -3,8 +3,8 @@
 
 .order {
   @include mixins.flex(column);
-  gap: 2rem;
-  margin-bottom: 2rem;
+  gap: 4rem;
+  margin-bottom: 4rem;
 
   &__field {
     @include mixins.flex(column);
@@ -14,16 +14,5 @@
   &__buttons {
     @include mixins.flex(row);
     gap: 1.5rem;
-  }
-}
-
-@media (max-height: 700px) {
-  .order {
-    gap: 1rem;
-    margin-bottom: 1rem;
-
-    &__field {
-      gap: 0.75rem;
-    }
   }
 }

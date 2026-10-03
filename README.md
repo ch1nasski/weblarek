@@ -152,13 +152,13 @@ interface IBuyer {
 `products: IProduct[]` - массив всех товаров, доступных в каталоге. Хранит полный список товаров, полученных с сервера.  
 `selectedProduct: IProduct | null` - товар, выбранный для подробного отображения. Используется для отображения модального окна с детальной информацией о товаре.
 
-Класс наследуется от `EventEmitter`; конструктор без параметров вызывает конструктор родителя.
+Класс использует общий брокер через композицию. Конструктор: `constructor(events: IEvents)`; ссылка на брокер хранится в закрытом поле `events: IEvents`.
 
 **Методы класса:**  
-`setProducts(products: IProduct[]): void` - сохраняет массив и генерирует `catalog:products:changed` с `{ products: IProduct[] }`.
+`setProducts(products: IProduct[]): void` - сохраняет массив и генерирует `catalog:products:changed` без данных; подписчик получает товары через `getProducts()`.
 `getProducts(): IProduct[]` - возвращает массив всех товаров из каталога.  
 `getProduct(id: string): IProduct | undefined` - принимает строку с идентификатором товара и возвращает объект товара по его id или `undefined`, если товар не найден.  
-`setSelectedProduct(product: IProduct): void` - сохраняет товар и генерирует `catalog:selected:changed` с `{ product: IProduct }`.
+`setSelectedProduct(product: IProduct): void` - сохраняет товар и генерирует `catalog:selected:changed` без данных; подписчик получает выбранный товар через `getSelectedProduct()`.
 `getSelectedProduct(): IProduct | null` - возвращает товар, выбранный для подробного отображения, или `null`, если ни один товар не выбран.
 
 ### Класс BasketModel
@@ -171,13 +171,13 @@ interface IBuyer {
 **Поля класса:**  
 `items: IProduct[]` - массив товаров, выбранных покупателем для покупки. Каждый элемент массива — это объект товара, добавленный в корзину.
 
-Класс наследуется от `EventEmitter`; конструктор без параметров вызывает конструктор родителя.
+Класс использует общий брокер через композицию. Конструктор: `constructor(events: IEvents)`; ссылка на брокер хранится в закрытом поле `events: IEvents`.
 
 **Методы класса:**  
 `getItems(): IProduct[]` - возвращает массив всех товаров, находящихся в корзине.  
-`addItem(product: IProduct): void` - добавляет товар и генерирует `basket:items:changed` с актуальными `items`, `total` и `count`.
-`removeItem(product: IProduct): void` - удаляет товар по `id` и генерирует `basket:items:changed` с актуальными `items`, `total` и `count`.
-`clear(): void` - очищает корзину и генерирует `basket:items:changed` с пустым массивом, нулевой суммой и количеством.
+`addItem(product: IProduct): void` - добавляет товар и генерирует `basket:items:changed` без данных.
+`removeItem(product: IProduct): void` - удаляет товар по `id` и генерирует `basket:items:changed` без данных.
+`clear(): void` - очищает корзину и генерирует `basket:items:changed` без данных.
 `getTotal(): number` - возвращает общую стоимость всех товаров в корзине. Суммирует значения цен всех товаров в массиве.  
 `getCount(): number` - возвращает количество товаров в корзине. Возвращает длину массива `items`.  
 `hasItem(id: string): boolean` - принимает строку с идентификатором товара и возвращает `true`, если товар с таким id находится в корзине, иначе возвращает `false`.
@@ -192,12 +192,12 @@ interface IBuyer {
 **Поля класса:**  
 `buyer: IBuyer` - объект, содержащий данные покупателя. Хранит способ оплаты (`TPayment | ''`), email, телефон и адрес доставки. Строковые поля могут быть пустыми до заполнения.
 
-Класс наследуется от `EventEmitter`; конструктор без параметров вызывает конструктор родителя.
+Класс использует общий брокер через композицию. Конструктор: `constructor(events: IEvents)`; ссылка на брокер хранится в закрытом поле `events: IEvents`.
 
 **Методы класса:**  
-`setBuyerData(data: Partial<IBuyer>): void` - обновляет переданные поля и генерирует `buyer:data:changed` с `{ buyer: IBuyer }`.
+`setBuyerData(data: Partial<IBuyer>): void` - обновляет переданные поля и генерирует `buyer:data:changed` без данных.
 `getBuyerData(): IBuyer` - возвращает объект со всеми текущими данными покупателя.  
-`clearBuyerData(): void` - очищает данные покупателя и генерирует `buyer:data:changed` с новым пустым объектом.
+`clearBuyerData(): void` - очищает данные покупателя и генерирует `buyer:data:changed` без данных.
 `validateBuyerData(): TValidationErrors` - проверяет корректность данных покупателя. Возвращает объект типа `TValidationErrors`, в котором ключи — это названия полей, а значения — сообщения об ошибках. Если поле валидно, оно не включается в объект ответа. Поле считается валидным, если оно не пусто. Пример возвращаемого значения при ошибках:
 ```typescript
 {
@@ -280,91 +280,93 @@ type TValidationErrors = Partial<Record<keyof IBuyer, string>>;
 
 ## Слой Представления (View)
 
-Слой `View` отвечает за отображение пользовательского интерфейса. Каждый класс работает с определённым блоком разметки и передаёт события презентеру. `NotifyHandler` имеет тип `(type: string, data?: unknown) => void` и служит callback-границей между View и Presenter.
+Слой `View` отвечает за отображение пользовательского интерфейса. Каждый класс имеет интерфейс состояния для `Component.render(state)`. Статические представления принимают общий брокер `IEvents` и публикуют пользовательские события через него. Для карточки каталога и позиции корзины Presenter передаёт callback-функции с замыканием над id товара.
+
+Каждый класс представления и его state-интерфейс находятся в отдельном файле: `BaseView.ts`, `CardView.ts`, `HeaderView.ts`, `CatalogCardView.ts`, `PreviewCardView.ts`, `BasketCardView.ts`, `BasketView.ts`, `FormView.ts`, `OrderFormView.ts`, `ContactsFormView.ts`, `ModalView.ts`, `SuccessView.ts` и `GalleryView.ts` в `src/components/view/`. Общие функции форматирования изображений и чтения формы вынесены в `viewUtils.ts`.
 
 ### Общие принципы архитектуры слоя View
 
 - Каждый класс представления отвечает только за свой участок страницы.
-- Карточки каталога, предпросмотра и корзины наследуются от `CardView`; общий класс хранит только механизм уведомления, данные товаров остаются в моделях.
+- Карточки каталога, предпросмотра и корзины наследуются от `CardView`; данные товаров остаются в моделях, а карточки каталога и корзины сообщают о действии через callback.
 - `OrderFormView` и `ContactsFormView` наследуются от `FormView`. View отправляет события об изменении/отправке формы, а валидность вычисляет презентер.
 - Модальное окно само по себе не является базой для других классов. Оно служит контейнером для самостоятельных компонентов: корзины, формы заказа, данных контактов и успешного оформления заказа.
-- Действия пользователя передаются через `NotifyHandler`, который вызывает презентер; View не обращается напрямую к моделям.
+- Остальные действия представлений эмитятся через общий `IEvents`; View не обращается напрямую к моделям.
 
 ### Базовый класс `BaseView<T>`
 
-**Назначение:** общий базовый класс View, наследуется от `Component<T>` и хранит обработчик уведомлений.
+**Назначение:** общий базовый класс статических View, наследуется от `Component<T>` и хранит общий брокер событий.
 
-**Конструктор:** `constructor(container: HTMLElement, notify?: NotifyHandler)`.
+**Параметр типа:** интерфейс состояния конкретного view-класса. `render(state?: Partial<T>): HTMLElement` унаследован от `Component<T>` и присваивает свойства через `Object.assign`, вызывая соответствующие сеттеры.
 
-**Поле:** `notify: NotifyHandler` — функция для передачи события презентеру.
+**Конструктор:** `constructor(container: HTMLElement, events: IEvents)`.
 
-**Методы:** `render(): HTMLElement` возвращает корневой элемент; `emit(type: string, data?: unknown): void` передаёт событие обработчику.
+**Поле:** `events: IEvents` — общий экземпляр брокера приложения.
 
 ### Базовый класс `CardView<T>`
 
-**Назначение:** общий абстрактный родитель карточек каталога, предпросмотра и корзины.
+**Назначение:** общий абстрактный родитель карточек каталога, предпросмотра и корзины. Наследуется напрямую от `Component<T>` и не получает брокер.
 
-**Конструктор:** `constructor(container: HTMLElement, notify?: NotifyHandler)`; доступен наследникам.
+**Конструктор:** `constructor(container: HTMLElement)`; доступен наследникам.
 
-**Поля:** собственных полей с данными товара не содержит; корневой элемент и уведомитель унаследованы от `Component` и `BaseView`.
+**Поля:** собственных полей с данными товара не содержит; корневой элемент унаследован от `Component`.
 
-**Методы:** наследует `render(): HTMLElement` и `emit(type: string, data?: unknown): void`.
+**Методы:** наследует `render(data?: Partial<T>): HTMLElement` от `Component<T>`.
 
 ### Класс `HeaderView`
 
-Отображает кнопку корзины и её счётчик в шапке. Конструктор: `constructor(container: HTMLElement, notify?: NotifyHandler)`. Поля: `basketButton: HTMLButtonElement`, `basketCounter: HTMLSpanElement`. Методы: `setCounter(value: number): void` обновляет счётчик; `render(): HTMLElement` возвращает шапку. По клику генерируется `basket:open`.
+Отображает кнопку корзины и её счётчик в шапке. Состояние: `IHeaderViewState { counter: number }`. Конструктор: `constructor(container: HTMLElement, events: IEvents)`. Поля: `basketButton: HTMLButtonElement`, `basketCounter: HTMLSpanElement`, унаследованное `events: IEvents`. Setter `counter` обновляет счётчик; Presenter вызывает `render({ counter })`. По клику брокер получает событие `basket:open`.
 
 ### Класс `GalleryView`
 
-Отвечает за каталог в `.gallery`. Конструктор: `constructor(container: HTMLElement, notify?: NotifyHandler)`. Дополнительных полей не имеет. Метод `render(products: IProduct[] = []): HTMLElement` создаёт `CatalogCardView` для каждого товара и возвращает контейнер каталога.
+Отвечает за каталог в `.gallery`. Состояние: `IGalleryViewState { items: HTMLElement[] }`. Конструктор: `constructor(container: HTMLElement, events: IEvents)`. Setter `items` вставляет подготовленные Presenter-ом карточки; `render({ items })` обновляет галерею.
 
 ### Класс `CatalogCardView`
 
-Наследуется от `CardView<IProduct>`, отображает товар в каталоге. Конструктор: `constructor(product: IProduct, notify?: NotifyHandler)`. Поля: DOM-узлы `title`, `price`, `image`, `category`; товар в экземпляре не хранится. Метод `render(product?: Partial<IProduct>): HTMLElement` подставляет данные или возвращает текущую разметку. Клик генерирует `card:select` с `{ id: string }`.
+Наследуется от `CardView<IProductCardState>`, где `IProductCardState { product: IProduct }`. Presenter клонирует `#card-catalog` через `cloneTemplate()` и передаёт root в конструктор `constructor(container: HTMLElement, onSelect: () => void)`. Поля: DOM-узлы `title`, `price`, `image`, `category`. Setter `product` отображает товар; Presenter передаёт его через `render({ product })`. Клик вызывает callback с замыканием над id товара.
 
 ### Класс `PreviewCardView`
 
-Наследуется от `CardView<IProduct>`, показывает подробную информацию. Конструктор: `constructor(product: IProduct, isInBasket: boolean, notify?: NotifyHandler)`. Поля: DOM-узлы `image`, `title`, `text`, `price`, `category`, `button`; товар не сохраняет. Метод `render(product?: Partial<IProduct>, isInBasket?: boolean): HTMLElement` отображает данные и действие. Кнопка генерирует `basket:toggle` с `{ id: string }`; при `price === null` она заблокирована.
+Наследуется от `BaseView<IPreviewCardState>`, где состояние содержит `product: IProduct`, `buttonText: string` и `buttonDisabled: boolean`. Presenter клонирует `#card-preview` и передаёт root в конструктор `constructor(container: HTMLElement, events: IEvents)`. Поля: DOM-узлы `image`, `title`, `text`, `price`, `category`, `button`. Setters отображают товар и присваивают готовые свойства кнопки; решение по цене и содержимому корзины принимает Presenter. Кнопка эмитит payload-free событие `card:action`.
 
 ### Класс `BasketCardView`
 
-Наследуется от `CardView<IProduct>`, отображает позицию корзины. Конструктор: `constructor(product: IProduct, index: number, notify?: NotifyHandler)`. Поля: DOM-узлы `index`, `title`, `price`, `deleteButton`; товар не сохраняет. Метод `render(product?: Partial<IProduct>, itemIndex?: number): HTMLElement` обновляет разметку. Кнопка удаления генерирует `basket:remove` с `{ id: string }`.
+Наследуется от `CardView<IBasketCardState>`, где `IBasketCardState` содержит `product: IProduct` и `index: number`. Presenter клонирует `#card-basket` и передаёт root в конструктор `constructor(container: HTMLElement, onRemove: () => void)`. Поля: DOM-узлы `indexElement`, `title`, `price`, `deleteButton`. Setters `product` и `index` отображают данные позиции; Presenter вызывает `render(state)`. Кнопка удаления вызывает callback Presenter-а с замыканием над id товара.
 
 ### Класс `ModalView`
 
-Управляет оболочкой модального окна и не является родителем других классов. Конструктор: `constructor(container: HTMLElement, notify?: NotifyHandler)`. Поля: `content: HTMLElement`, `closeButton: HTMLButtonElement`. Методы: `open(content: HTMLElement): void`, `close(): void`, `render(): HTMLElement`. Открытие генерирует `modal:open`; закрытие по крестику, фону или вызову `close()` — `modal:close`.
+Управляет оболочкой модального окна и не является родителем других классов. Состояние: `IModalViewState { content: HTMLElement | null }`. Конструктор: `constructor(container: HTMLElement, events: IEvents)`. Поля: `contentElement: HTMLElement`, `closeButton: HTMLButtonElement`, унаследованное `events: IEvents`. Setter `content` обновляет содержимое; Presenter передаёт его через `render({ content })`. Методы `open(): void` и `close(): void` только меняют видимость и не эмитят события. Пользовательское закрытие крестиком или оверлеем эмитит `modal:close` из listener-а.
 
 ### Класс `BasketView`
 
-Отображает содержимое шаблона корзины. Конструктор: `constructor(container: HTMLElement, notify?: NotifyHandler)`. Поля: `list: HTMLUListElement`, `total: HTMLElement`, `button: HTMLButtonElement`. Метод `render(items: IProduct[] = [], totalPrice = 0): HTMLElement` строит позиции и отображает сумму, рассчитанную BasketModel, а также состояние кнопки оформления. Клик по кнопке генерирует `basket:checkout`; пустая корзина отключает кнопку.
+Отображает шаблон корзины. Состояние `IBasketViewState` содержит готовые `items: HTMLElement[]`, `total: number` и `buttonDisabled: boolean`. Конструктор: `constructor(container: HTMLElement, events: IEvents)`. Поля: `list: HTMLUListElement`, `total: HTMLElement`, `button: HTMLButtonElement`. Setters только присваивают список, сумму и готовое состояние кнопки; Presenter вызывает `render(state)` и определяет доступность checkout по данным модели. Кнопка эмитит `basket:checkout`.
 
 ### Родительский класс форм: `FormView`
 
-Абстрактный общий родитель форм. Конструктор: `constructor(container: HTMLElement, notify?: NotifyHandler)`. Поля: `form: HTMLFormElement`, `errorNode: HTMLElement | null`, `submitButton: HTMLButtonElement | null`. Метод `setValidation(isValid: boolean, message?: string): void` отображает ошибку и включает/отключает кнопку. При вводе генерирует `form:change` с данными формы; при submit — событие, возвращаемое `getSubmitEventName(): string`. Данные из DOM не возвращаются презентеру через геттер View: событие отправляется через `NotifyHandler`.
+Абстрактный общий родитель форм с generic-состоянием на основе `IFormViewState`: значения полей покупателя, `valid: boolean`, `errors: string`. Конструктор: `constructor(container: HTMLElement, events: IEvents)`. Поля: `form: HTMLFormElement`, `errorNode: HTMLElement | null`, `submitButton: HTMLButtonElement | null`, `inputFields: HTMLInputElement[]`, `namedButtons: HTMLButtonElement[]`, унаследованное `events: IEvents`. Setters применяют поля состояния; при вводе эмитит `form:change`, при submit — событие из `getSubmitEventName(): string`.
 
 ### Класс `OrderFormView`
 
-Наследуется от `FormView`, отображает первую форму заказа. Конструктор: `constructor(container: HTMLElement, notify?: NotifyHandler, buyer?: Partial<IBuyer>)`. Поля: `paymentButtons: HTMLButtonElement[]`, `addressInput: HTMLInputElement`. Методы: `setPayment(payment: TPayment | ''): void` обновляет выделение оплаты; `getSubmitEventName(): string` возвращает `order:next`. Клик выбора оплаты генерирует `order:payment:select` с `{ payment: TPayment }`.
+Наследуется от `FormView<IOrderFormViewState>`, состояние содержит оплату, адрес, `valid` и `errors`. Конструктор: `constructor(container: HTMLElement, events: IEvents)`. Использует `namedButtons` родителя. `getSubmitEventName(): string` возвращает `order:submit`; выбор оплаты эмитит `order:payment:select`.
 
 ### Класс `ContactsFormView`
 
-Наследуется от `FormView`, отображает контакты покупателя. Конструктор: `constructor(container: HTMLElement, notify?: NotifyHandler, buyer?: Partial<IBuyer>)`. Поля: `emailInput: HTMLInputElement`, `phoneInput: HTMLInputElement`. Метод `getSubmitEventName(): string` возвращает `contacts:submit`.
+Наследуется от `FormView<IContactsFormViewState>`, состояние содержит email, телефон, `valid` и `errors`. Конструктор: `constructor(container: HTMLElement, events: IEvents)`. `getSubmitEventName(): string` возвращает `contacts:submit`.
 
 ### Класс `SuccessView`
 
-Показывает подтверждение заказа. Конструктор: `constructor(container: HTMLElement, notify?: NotifyHandler)`. Поля: `description: HTMLElement`, `button: HTMLButtonElement`. Метод `render(total?: number): HTMLElement` отображает сумму. Кнопка генерирует `success:close`.
+Показывает подтверждение заказа. Состояние: `ISuccessViewState { total: number }`. Конструктор: `constructor(container: HTMLElement, events: IEvents)`. Поля: `description: HTMLElement`, `button: HTMLButtonElement`, унаследованное `events: IEvents`. Setter `total` отображает сумму; Presenter вызывает `render({ total })`. Кнопка эмитит `success:close`.
 
 ### Итог по взаимодействию View и Presenter
 
 Каждое действие пользователя в интерфейсе генерирует событие. Например:
 
-- клик по карточке → `card:select`;
-- покупка или удаление товара из предпросмотра → `basket:toggle`;
-- удаление товара → `basket:remove`;
+- выбор карточки каталога вызывает callback Presenter-а с захваченным `id`;
+- действие покупки или удаления из предпросмотра → `card:action`;
+- удаление товара из позиции корзины вызывает callback Presenter-а с захваченным `id`;
 - оформление заказа → `basket:checkout`;
 - выбор оплаты → `order:payment:select`;
 - изменение полей формы → `form:change`;
-- отправка формы → `order:next` либо `contacts:submit`;
+- отправка формы → `order:submit` либо `contacts:submit`;
 - закрытие модалки → `modal:close`.
 
 Эти события перехватываются Презентером, который принимает решение о том, какие модели обновить и какой запрос к серверу сделать. Такая схема гарантирует разделение ответственности: `View` отвечает за отображение, `Model` — за данные, а `Presenter` — за логику связки и обработку действий пользователя.
@@ -389,14 +391,14 @@ type TValidationErrors = Partial<Record<keyof IBuyer, string>>;
 
 ## События приложения
 
-Ниже перечислены события, фактически генерируемые моделями и представлениями. Представления передают события презентеру через `NotifyHandler`, а модели публикуют их через `EventEmitter`.
+Ниже перечислены события, фактически генерируемые моделями и представлениями. Статические View публикуют события через общий `IEvents`; карточки каталога и корзины сообщают Presenter-у через переданные callback-и.
 
 ### События моделей
 
-- `catalog:products:changed` (`CatalogModel`) — полный каталог сохранён; данные: `{ products: IProduct[] }`.
-- `catalog:selected:changed` (`CatalogModel`) — изменён выбранный товар; данные: `{ product: IProduct | null }`.
-- `basket:items:changed` (`BasketModel`) — изменён состав корзины; данные содержат `items: IProduct[]`, `total: number`, `count: number`.
-- `buyer:data:changed` (`BuyerModel`) — изменены данные покупателя; данные: `{ buyer: IBuyer }`.
+- `catalog:products:changed` (`CatalogModel`) — полный каталог изменён; событие не содержит payload, товары считываются через `getProducts()`.
+- `catalog:selected:changed` (`CatalogModel`) — выбранный товар изменён; событие не содержит payload, товар считывается через `getSelectedProduct()`.
+- `basket:items:changed` (`BasketModel`) — содержимое корзины изменено; событие не содержит payload, состояние считывается через `getItems()`, `getTotal()` и `getCount()`.
+- `buyer:data:changed` (`BuyerModel`) — данные покупателя изменены; событие не содержит payload, данные считываются через `getBuyerData()`.
 
 ### `basket:open`
 
@@ -404,23 +406,11 @@ type TValidationErrors = Partial<Record<keyof IBuyer, string>>;
 **Когда происходит:** пользователь нажимает на кнопку корзины в шапке.
 **Назначение:** открыть корзину и показать её содержимое.
 
-### `card:select`
-
-**Где генерируется:** `CatalogCardView`
-**Когда происходит:** пользователь кликает по карточке товара в галерее.
-**Назначение:** выбрать товар для подробного просмотра и открыть его в модальном окне.
-
-### `basket:toggle`
+### `card:action`
 
 **Где генерируется:** `PreviewCardView`
 **Когда происходит:** пользователь нажимает «Купить» или «Удалить из корзины» в карточке товара.
-**Назначение:** сообщить презентеру `id` товара; Presenter проверяет BasketModel и добавляет/удаляет товар, после чего закрывает модальное окно.
-
-### `basket:remove`
-
-**Где генерируется:** `BasketCardView`
-**Когда происходит:** пользователь нажимает кнопку удаления товара из корзины.
-**Назначение:** удалить товар из списка корзины и пересчитать итог.
+**Данные:** отсутствуют. Presenter получает выбранный товар через `CatalogModel.getSelectedProduct()`, проверяет наличие товара в корзине и переключает его состояние.
 
 ### `basket:checkout`
 
@@ -434,7 +424,7 @@ type TValidationErrors = Partial<Record<keyof IBuyer, string>>;
 **Когда происходит:** пользователь выбирает способ оплаты: онлайн или при получении.
 **Назначение:** сохранить выбранный способ оплаты и подготовить форму к подтверждению.
 
-### `order:next`
+### `order:submit`
 
 **Где генерируется:** `OrderFormView`
 **Когда происходит:** пользователь отправляет форму выбора оплаты и адреса.
@@ -445,12 +435,6 @@ type TValidationErrors = Partial<Record<keyof IBuyer, string>>;
 **Где генерируется:** `ContactsFormView`
 **Когда происходит:** пользователь отправляет форму с email и телефоном.
 **Назначение:** подтвердить контактные данные и передать заказ на финальную обработку.
-
-### `modal:open`
-
-**Где генерируется:** `ModalView`
-**Когда происходит:** модальное окно открывается с выбранным содержимым.
-**Назначение:** показать выбранный компонент окна.
 
 ### `modal:close`
 
