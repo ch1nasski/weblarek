@@ -21,14 +21,18 @@
     @include mixins.flex(column);
     gap: $defaultPadding;
     background-color: $background;
-    // min-height: 90vmin;
-    border-radius: 3rem;
+    width: min(calc(100% - 2rem), 1000px);
+    max-height: 90vh;
+    overflow: hidden;
+    border-radius: 1.5rem;
     box-sizing: border-box;
     position: relative;
   }
 
   &__content {
     flex-grow: 1;
+    min-width: 0;
+    overflow: hidden;
   }
 
   &__title {

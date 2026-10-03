@@ -3,15 +3,32 @@
 
 .gallery {
   @include mixins.container;
-  @include mixins.grid(600px, 24px);
+  @include mixins.grid(304px, 24px);
 
   &__item {
     border: none;
     border-radius: $defaultBorderRadius;
+    min-width: 0;
     @include mixins.selectable($secondary, 2px, $primaryLight);
+
+    .card__image {
+      width: 100%;
+      max-height: 260px;
+      margin: 0;
+    }
+
+    .card__title {
+      font-size: 1.4rem;
+    }
 
     &::after {
       border-radius: 0.8rem;
     }
+  }
+}
+
+@media (max-width: 680px) {
+  .gallery {
+    grid-template-columns: 1fr;
   }
 }

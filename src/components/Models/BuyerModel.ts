@@ -1,6 +1,7 @@
 import { IBuyer, TValidationErrors } from '../../types/index';
+import { EventEmitter } from '../base/Events';
 
-export class BuyerModel {
+export class BuyerModel extends EventEmitter {
     private buyer: IBuyer = {
         payment: '',
         email: '',
@@ -8,9 +9,14 @@ export class BuyerModel {
         address: ''
     };
 
+    constructor() {
+        super();
+    }
+
     // Обновляет данные покупателя (можно обновить только необходимые поля)
     setBuyerData(data: Partial<IBuyer>): void {
         this.buyer = { ...this.buyer, ...data };
+        this.emit('buyer:data:changed', { buyer: this.buyer });
     }
 
     // Возвращает все данные покупателя
@@ -26,6 +32,7 @@ export class BuyerModel {
             phone: '',
             address: ''
         };
+        this.emit('buyer:data:changed', { buyer: this.buyer });
     }
 
     // Валидирует данные покупателя
