@@ -29,7 +29,7 @@ export abstract class FormView<T extends IFormViewState> extends BaseView<T> {
 
         this.form.addEventListener('submit', (event) => {
             event.preventDefault();
-            this.events.emit(this.getSubmitEventName(), readFormData(this.form));
+            this.events.emit(this.getSubmitEventName());
         });
     }
 

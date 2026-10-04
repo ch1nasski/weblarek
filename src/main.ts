@@ -44,8 +44,7 @@ const createCatalogCards = (products: IProduct[]): HTMLElement[] => products.map
     const productId = product.id;
     const cardRoot = cloneTemplate<HTMLElement>('#card-catalog');
     const cardView = new CatalogCardView(cardRoot, () => {
-        const selectedProduct = catalogModel.getProduct(productId);
-        if (selectedProduct) catalogModel.setSelectedProduct(selectedProduct);
+        events.emit('card:select', { id: productId });
     });
 
     return cardView.render({ product });
@@ -55,8 +54,7 @@ const createBasketCards = (products: IProduct[]): HTMLElement[] => products.map(
     const productId = product.id;
     const cardRoot = cloneTemplate<HTMLElement>('#card-basket');
     const cardView = new BasketCardView(cardRoot, () => {
-        const item = basketModel.getItems().find((basketItem) => basketItem.id === productId);
-        if (item) basketModel.removeItem(item);
+        events.emit('basket:item:click', { id: productId });
     });
 
     return cardView.render({ product, index: index + 1 });
@@ -133,23 +131,31 @@ renderBuyerForms();
 
 events.on('basket:open', renderBasket);
 
+events.on<{ id: string }>('card:select', ({ id }) => {
+    const product = catalogModel.getProduct(id);
+    if (product) catalogModel.setSelectedProduct(product);
+});
+
+events.on<{ id: string }>('basket:item:click', ({ id }) => {
+    const item = basketModel.getItems().find((basketItem) => basketItem.id === id);
+    if (item) basketModel.removeItem(item);
+});
+
 events.on('card:action', () => {
     const product = catalogModel.getSelectedProduct();
-    if (product && product.price !== null) {
-        if (basketModel.hasItem(product.id)) {
-            basketModel.removeItem(product);
-        } else {
-            basketModel.addItem(product);
-        }
+    if (!product) return;
+
+    if (basketModel.hasItem(product.id)) {
+        basketModel.removeItem(product);
+    } else {
+        basketModel.addItem(product);
     }
     modalView.close();
 });
 
 events.on('basket:checkout', () => {
-    if (basketModel.getCount() > 0) {
-        modalView.render({ content: orderFormView.render(getOrderFormState()) });
-        modalView.open();
-    }
+    modalView.render({ content: orderFormView.render(getOrderFormState()) });
+    modalView.open();
 });
 
 events.on<{ payment: TPayment }>('order:payment:select', (data) => {
