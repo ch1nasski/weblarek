@@ -1,5 +1,13 @@
 @use "variables" as *;
 
+html {
+	scrollbar-width: none;
+}
+
+html::-webkit-scrollbar {
+	display: none;
+}
+
 html, body.page {
 	height: 100%;
 	font-family: $font;

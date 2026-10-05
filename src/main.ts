@@ -16,6 +16,7 @@ import { OrderFormView } from './components/view/OrderFormView';
 import { PreviewCardView } from './components/view/PreviewCardView';
 import { SuccessView } from './components/view/SuccessView';
 import { API_URL } from './utils/constants';
+import { getImageUrl } from './components/view/viewUtils';
 import { IBuyer, IProduct, TPayment } from './types/index';
 import { cloneTemplate, ensureElement } from './utils/utils';
 
@@ -47,7 +48,12 @@ const createCatalogCards = (products: IProduct[]): HTMLElement[] => products.map
         events.emit('card:select', { id: productId });
     });
 
-    return cardView.render({ product });
+    return cardView.render({
+        title: product.title,
+        price: product.price,
+        category: product.category,
+        image: getImageUrl(product.image)
+    });
 });
 
 const createBasketCards = (products: IProduct[]): HTMLElement[] => products.map((product, index) => {
@@ -105,7 +111,11 @@ const updateSelectedProductView = () => {
     if (!product) return null;
 
     return previewCardView.render({
-        product,
+        title: product.title,
+        price: product.price,
+        category: product.category,
+        image: getImageUrl(product.image),
+        description: product.description,
         buttonText: product.price === null
             ? 'Недоступно'
             : basketModel.hasItem(product.id) ? 'Удалить из корзины' : 'Купить',
